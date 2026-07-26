@@ -58,10 +58,9 @@ export function AuthPage() {
     }
   };
 
-  const fillQuickLogin = (demoEmail, demoRole) => {
-    setEmail(demoEmail);
-    setPassword("EnterprisePass123!");
-    setUserRole(demoRole);
+  const fillQuickLogin = (demoUser, demoPass) => {
+    setEmail(demoUser);
+    setPassword(demoPass);
   };
 
   return (
@@ -110,39 +109,62 @@ export function AuthPage() {
 
             {/* Demo Credentials Shortcuts */}
             <div className="pt-4 border-t border-white/10 space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enterprise Quick Login Presets</span>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Demo Accounts (Click to autofill)</span>
+              <div className="grid grid-cols-1 gap-1.5 text-[11px]">
                 <button
                   type="button"
-                  onClick={() => fillQuickLogin("alex.cyber@company.com", RBAC_ROLES.SUPER_ADMIN)}
-                  className="p-2 rounded-xl glass-card bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-left"
+                  onClick={() => fillQuickLogin("superadmin", "Super@123")}
+                  className="p-2 rounded-xl glass-card bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-left flex items-center justify-between"
                 >
-                  <span className="font-bold block">Alex Mercer</span>
-                  <span className="text-[10px] text-slate-400">Super Admin</span>
+                  <div>
+                    <span className="font-bold block text-white">1. Super Admin</span>
+                    <span className="text-[10px] text-slate-400">superadmin / Super@123</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-200">Full Access</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillQuickLogin("admin@soc.io", RBAC_ROLES.SEC_ADMIN)}
-                  className="p-2 rounded-xl glass-card bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-left"
+                  onClick={() => fillQuickLogin("manager", "Manager@123")}
+                  className="p-2 rounded-xl glass-card bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-left flex items-center justify-between"
                 >
-                  <span className="font-bold block">Sarah Jenkins</span>
-                  <span className="text-[10px] text-slate-400">Security Admin</span>
+                  <div>
+                    <span className="font-bold block text-white">2. SOC Manager</span>
+                    <span className="text-[10px] text-slate-400">manager / Manager@123</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200">Manager Access</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillQuickLogin("target.user@corp.internal", RBAC_ROLES.EMPLOYEE)}
-                  className="p-2 rounded-xl glass-card bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-left"
+                  onClick={() => fillQuickLogin("analyst", "Analyst@123")}
+                  className="p-2 rounded-xl glass-card bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-left flex items-center justify-between"
                 >
-                  <span className="font-bold block">Target User</span>
-                  <span className="text-[10px] text-slate-400">Locked Account</span>
+                  <div>
+                    <span className="font-bold block text-white">3. SOC Analyst</span>
+                    <span className="text-[10px] text-slate-400">analyst / Analyst@123</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-200">Analyst Access</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillQuickLogin("ananya.roy@corp.internal", RBAC_ROLES.SOC_MANAGER)}
-                  className="p-2 rounded-xl glass-card bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-left"
+                  onClick={() => fillQuickLogin("responder", "Responder@123")}
+                  className="p-2 rounded-xl glass-card bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-left flex items-center justify-between"
                 >
-                  <span className="font-bold block">Ananya Roy</span>
-                  <span className="text-[10px] text-slate-400">SOC Manager</span>
+                  <div>
+                    <span className="font-bold block text-white">4. Incident Responder</span>
+                    <span className="text-[10px] text-slate-400">responder / Responder@123</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-200">Responder Access</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillQuickLogin("securityadmin", "Security@123")}
+                  className="p-2 rounded-xl glass-card bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-left flex items-center justify-between"
+                >
+                  <div>
+                    <span className="font-bold block text-white">5. Security Administrator</span>
+                    <span className="text-[10px] text-slate-400">securityadmin / Security@123</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200">Security Admin Access</span>
                 </button>
               </div>
             </div>
@@ -280,15 +302,15 @@ export function AuthPage() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Employee Corporate Email</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Username or Corporate Email</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alex.cyber@company.com"
+                  placeholder="e.g. superadmin, manager, analyst..."
                   className="w-full glass-input pl-10 pr-4 py-2.5 text-sm"
                 />
               </div>

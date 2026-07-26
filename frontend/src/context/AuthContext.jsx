@@ -27,6 +27,7 @@ import { evaluateLoginAttempt } from "../services/detectionEngine";
 import { 
   RBAC_ROLES, 
   ROLE_PERMISSIONS, 
+  DEMO_ACCOUNTS,
   generateEnterpriseEmployees, 
   generateInitialTelemetry 
 } from "../services/enterpriseData";
@@ -38,7 +39,14 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("soc_user") || localStorage.getItem("soc_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState(RBAC_ROLES.SUPER_ADMIN); // Active system role
 
@@ -226,8 +234,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!isConfigured) {
       console.log("Firestore not configured: Loading enterprise seed dataset.");
-      const { seedEmployees } = initializeSeedDataset();
-      setCurrentUser(seedEmployees[0]);
+      initializeSeedDataset();
+      const saved = sessionStorage.getItem("soc_user") || localStorage.getItem("soc_user");
+      if (saved) {
+        try { setCurrentUser(JSON.parse(saved)); } catch(e) {}
+      }
       setLoading(false);
       return;
     }
@@ -319,25 +330,27 @@ export function AuthProvider({ children }) {
             const userDocRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userDocRef);
             if (userSnap.exists()) {
-              setCurrentUser({ id: user.uid, ...userSnap.data() });
+              const uObj = { id: user.uid, ...userSnap.data() };
+              setCurrentUser(uObj);
+              sessionStorage.setItem("soc_user", JSON.stringify(uObj));
             } else {
               const matchedEmp = usersList.find((u) => u.email?.toLowerCase() === user.email?.toLowerCase());
-              setCurrentUser(matchedEmp || { id: user.uid, email: user.email, name: user.displayName || user.email.split("@")[0], role: RBAC_ROLES.SUPER_ADMIN });
+              const uObj = matchedEmp || { id: user.uid, email: user.email, name: user.displayName || user.email.split("@")[0], role: RBAC_ROLES.SUPER_ADMIN };
+              setCurrentUser(uObj);
+              sessionStorage.setItem("soc_user", JSON.stringify(uObj));
             }
           } catch (e) {
-            setCurrentUser({ id: user.uid, email: user.email, name: user.email.split("@")[0], role: RBAC_ROLES.SUPER_ADMIN });
+            const uObj = { id: user.uid, email: user.email, name: user.email.split("@")[0], role: RBAC_ROLES.SUPER_ADMIN };
+            setCurrentUser(uObj);
+            sessionStorage.setItem("soc_user", JSON.stringify(uObj));
           }
         } else {
-          setCurrentUser((prev) => prev || {
-            id: "emp_10001",
-            empId: "EMP-10001",
-            email: "alex.cyber@company.com",
-            name: "Alex Mercer",
-            role: RBAC_ROLES.SUPER_ADMIN,
-            accountStatus: "Active",
-            department: "Cybersecurity / SOC",
-            designation: "Lead SOC Architect"
-          });
+          const saved = sessionStorage.getItem("soc_user") || localStorage.getItem("soc_user");
+          if (saved) {
+            try { setCurrentUser(JSON.parse(saved)); } catch(e) { setCurrentUser(null); }
+          } else {
+            setCurrentUser(null);
+          }
         }
         setLoading(false);
       });
@@ -350,8 +363,13 @@ export function AuthProvider({ children }) {
       };
     } catch (err) {
       console.warn("Firebase initialization notice, using local seed:", err);
-      const { seedEmployees } = initializeSeedDataset();
-      setCurrentUser(seedEmployees[0]);
+      initializeSeedDataset();
+      const saved = sessionStorage.getItem("soc_user") || localStorage.getItem("soc_user");
+      if (saved) {
+        try { setCurrentUser(JSON.parse(saved)); } catch(e) { setCurrentUser(null); }
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     }
   }, []);
@@ -531,18 +549,78 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Firebase User Login
+   * Enterprise User Login (Supports Username or Email with Demo Account verification)
    */
-  const login = async (email, password, rememberDevice = true) => {
+  const login = async (usernameOrEmail, password, rememberDevice = true) => {
     const telemetry = activeTelemetry || await getClientTelemetry();
-    const existingUser = usersList.find((u) => u && u.email?.toLowerCase() === email?.toLowerCase());
+    const input = (usernameOrEmail || "").trim();
+
+    // 1. Match Demo Accounts (superadmin, manager, analyst, responder, securityadmin)
+    const demoAcc = DEMO_ACCOUNTS.find(
+      (d) => d.username.toLowerCase() === input.toLowerCase() || d.email.toLowerCase() === input.toLowerCase()
+    );
+
+    if (demoAcc) {
+      if (password === demoAcc.password) {
+        const userObj = {
+          id: `demo_${demoAcc.username}`,
+          empId: demoAcc.empId,
+          email: demoAcc.email,
+          username: demoAcc.username,
+          name: demoAcc.name,
+          role: demoAcc.role,
+          department: demoAcc.department,
+          designation: demoAcc.designation,
+          accountStatus: "Active",
+          locked: false,
+          disabled: false,
+          assignedDevices: [telemetry.deviceInfo]
+        };
+
+        setCurrentUser(userObj);
+        sessionStorage.setItem("soc_user", JSON.stringify(userObj));
+        if (rememberDevice) {
+          localStorage.setItem("soc_user", JSON.stringify(userObj));
+        }
+
+        await recordLoginAttempt({
+          empId: userObj.empId,
+          userId: userObj.id,
+          email: userObj.email,
+          name: userObj.name,
+          status: "success",
+          device: telemetry.deviceInfo,
+          location: `${telemetry.city}, ${telemetry.country}`,
+          ip: telemetry.ip
+        });
+
+        return userObj;
+      } else {
+        await recordLoginAttempt({
+          empId: demoAcc.empId,
+          userId: `demo_${demoAcc.username}`,
+          email: demoAcc.email,
+          name: demoAcc.name,
+          status: "failed",
+          device: telemetry.deviceInfo,
+          location: `${telemetry.city}, ${telemetry.country}`,
+          ip: telemetry.ip
+        });
+        throw new Error("Invalid Username/Email or Password.");
+      }
+    }
+
+    // 2. Match Users List / Firestore database
+    const existingUser = usersList.find(
+      (u) => u && (u.email?.toLowerCase() === input.toLowerCase() || (u.empId && u.empId.toLowerCase() === input.toLowerCase()))
+    );
 
     if (existingUser && (existingUser.locked || existingUser.disabled || existingUser.accountStatus === "Locked" || existingUser.accountStatus === "Disabled")) {
       const isDis = existingUser.disabled || existingUser.accountStatus === "Disabled";
       await recordLoginAttempt({
         empId: existingUser.empId,
         userId: existingUser.id,
-        email,
+        email: existingUser.email,
         name: existingUser.name,
         status: "failed",
         device: telemetry.deviceInfo,
@@ -553,35 +631,47 @@ export function AuthProvider({ children }) {
     }
 
     let authUser = null;
-    if (isConfigured) {
+    if (isConfigured && input.includes("@")) {
       try {
-        const res = await signInWithEmailAndPassword(auth, email, password);
+        const res = await signInWithEmailAndPassword(auth, input, password);
         authUser = res.user;
       } catch (err) {
         await recordLoginAttempt({
           empId: existingUser ? existingUser.empId : "EMP-UNKNOWN",
           userId: existingUser ? existingUser.id : null,
-          email,
-          name: existingUser ? existingUser.name : email.split("@")[0],
+          email: input,
+          name: existingUser ? existingUser.name : input.split("@")[0],
           status: "failed",
           device: telemetry.deviceInfo,
           location: `${telemetry.city}, ${telemetry.country}`,
           ip: telemetry.ip
         });
-        throw new Error("Invalid credentials provided.");
+        throw new Error("Invalid Username/Email or Password.");
       }
+    } else if (!existingUser) {
+      await recordLoginAttempt({
+        empId: "EMP-UNKNOWN",
+        userId: null,
+        email: input,
+        name: input,
+        status: "failed",
+        device: telemetry.deviceInfo,
+        location: `${telemetry.city}, ${telemetry.country}`,
+        ip: telemetry.ip
+      });
+      throw new Error("Invalid Username/Email or Password.");
     }
 
     const userObj = existingUser || {
       id: authUser ? authUser.uid : `user_${Date.now()}`,
       empId: `EMP-${Math.floor(10000 + Math.random() * 9000)}`,
-      email,
-      name: email.split("@")[0],
+      email: input.includes("@") ? input : `${input}@company.com`,
+      name: input.split("@")[0],
       department: "Cybersecurity / SOC",
       designation: "SOC Analyst",
       team: "Threat Operations",
       officeLocation: `${telemetry.city}, ${telemetry.country}`,
-      role: email.includes("admin") ? RBAC_ROLES.SUPER_ADMIN : RBAC_ROLES.SOC_ANALYST_L1,
+      role: RBAC_ROLES.SOC_ANALYST,
       accountStatus: "Active",
       locked: false,
       disabled: false,
@@ -589,15 +679,15 @@ export function AuthProvider({ children }) {
     };
 
     if (rememberDevice) {
-      localStorage.setItem("soc_remembered_device", telemetry.deviceFingerprint);
+      localStorage.setItem("soc_user", JSON.stringify(userObj));
     }
-
+    sessionStorage.setItem("soc_user", JSON.stringify(userObj));
     setCurrentUser(userObj);
 
     await recordLoginAttempt({
       empId: userObj.empId,
       userId: userObj.id,
-      email,
+      email: userObj.email,
       name: userObj.name,
       status: "success",
       device: telemetry.deviceInfo,
@@ -624,7 +714,9 @@ export function AuthProvider({ children }) {
   const switchRole = (newRole) => {
     setRole(newRole);
     if (currentUser) {
-      setCurrentUser((prev) => prev ? ({ ...prev, role: newRole }) : null);
+      const updated = { ...currentUser, role: newRole };
+      setCurrentUser(updated);
+      sessionStorage.setItem("soc_user", JSON.stringify(updated));
     }
   };
 
@@ -649,6 +741,8 @@ export function AuthProvider({ children }) {
         await signOut(auth);
       } catch (e) {}
     }
+    sessionStorage.removeItem("soc_user");
+    localStorage.removeItem("soc_user");
     setCurrentUser(null);
   };
 

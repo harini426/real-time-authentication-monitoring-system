@@ -244,26 +244,28 @@ export function AlertDetailModal({ alert, onClose }) {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
           
           {/* Account Lock Toggle */}
-          <button
-            onClick={handleToggleLock}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition ${
-              isLocked
-                ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
-                : "bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30"
-            }`}
-          >
-            {isLocked ? (
-              <>
-                <Unlock className="w-4 h-4" />
-                <span>Unlock Account Access</span>
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4" />
-                <span>Lock Account Access</span>
-              </>
-            )}
-          </button>
+          {((isLocked && hasPermission("canUnlockUsers")) || (!isLocked && hasPermission("canLockUsers"))) && (
+            <button
+              onClick={handleToggleLock}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition ${
+                isLocked
+                  ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                  : "bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30"
+              }`}
+            >
+              {isLocked ? (
+                <>
+                  <Unlock className="w-4 h-4" />
+                  <span>Unlock Account Access</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Lock Account Access</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Workflow Status Actions */}
           <div className="flex items-center space-x-2">

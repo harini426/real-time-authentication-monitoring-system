@@ -51,12 +51,33 @@
   border-radius: 0.75rem;
   outline: none;
   transition: all 0.2s ease;
+  color-scheme: dark;
 }
 
 .glass-input:focus {
   border-color: rgba(99, 102, 241, 0.6);
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
   background: rgba(255, 255, 255, 0.09);
+}
+
+/* High Contrast Dark Dropdown Options Styling */
+select option {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+select option:checked {
+  background-color: #1e293b !important;
+  color: #38bdf8 !important;
+  font-weight: 600;
 }
 
 .glass-button-primary {

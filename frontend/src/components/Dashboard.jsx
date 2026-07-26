@@ -12,6 +12,8 @@ import {
   TrendingUp,
   Server,
   Lock,
+  Unlock,
+  UserCheck,
   Laptop,
   Clock,
   LogOut,
@@ -20,7 +22,12 @@ import {
   BarChart3,
   PieChart as PieIcon,
   Layers,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  UserPlus,
+  KeyRound,
+  ShieldCheck,
+  Ban
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -38,17 +45,29 @@ import {
 } from "recharts";
 import { LocationMap } from "./LocationMap";
 import { AlertDetailModal } from "./AlertDetailModal";
+import { RBAC_ROLES, SOC_ANALYSTS } from "../services/enterpriseData";
 
 export function Dashboard() {
   const { 
+    currentUser,
+    role,
     loginAttempts = [], 
     alerts = [], 
     usersList = [], 
     activeSessions = [], 
     resolveAlert, 
-    terminateSession 
+    escalateAlert,
+    assignAnalyst,
+    terminateSession,
+    lockUser,
+    unlockUser,
+    enableUser,
+    disableUser,
+    resetPassword,
+    hasPermission 
   } = useAuth();
   
+  const currentRole = role || currentUser?.role || RBAC_ROLES.SUPER_ADMIN;
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [severityFilter, setSeverityFilter] = useState("all");
 
@@ -159,8 +178,282 @@ export function Dashboard() {
     return a.severity === severityFilter;
   });
 
+  // -------------------------------------------------------------
+  // ROLE-TAILORED HEADER & WIDGET RENDERING
+  // -------------------------------------------------------------
+  const renderRoleHeader = () => {
+    switch (currentRole) {
+      case RBAC_ROLES.SUPER_ADMIN:
+        return (
+          <div className="glass-panel p-6 border-indigo-500/30 bg-gradient-to-r from-indigo-900/20 via-purple-900/20 to-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4 glow-severity-low">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                  SUPER ADMIN MASTER CONSOLE
+                </span>
+                <span className="text-xs text-slate-400 font-mono">CISO Security Operations</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">Enterprise Master Threat & Operations Center</h2>
+              <p className="text-xs text-slate-300 mt-1">
+                Full privilege master view: Global telemetry stream, real-time threat detection engine, workforce identity governance, and system configuration.
+              </p>
+            </div>
+          </div>
+        );
+      case RBAC_ROLES.SOC_MANAGER:
+        return (
+          <div className="glass-panel p-6 border-emerald-500/30 bg-gradient-to-r from-emerald-900/20 via-teal-900/20 to-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  SOC MANAGER OVERVIEW
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Team Lead Operations</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">SOC Team Workload & Incident Performance Dashboard</h2>
+              <p className="text-xs text-slate-300 mt-1">
+                Monitor analyst SLA compliance, incident assignment velocity, escalation queues, and security reports.
+              </p>
+            </div>
+          </div>
+        );
+      case RBAC_ROLES.SOC_ANALYST:
+      case RBAC_ROLES.SOC_ANALYST_L1:
+      case RBAC_ROLES.SOC_ANALYST_L2:
+        return (
+          <div className="glass-panel p-6 border-cyan-500/30 bg-gradient-to-r from-cyan-900/20 via-indigo-900/20 to-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  SOC ANALYST TELEMETRY CONSOLE
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Real-Time Monitoring</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">Authentication Stream & Anomaly Inspector</h2>
+              <p className="text-xs text-slate-300 mt-1">
+                Monitor live employee logins, analyze failed authentication bursts, inspect Haversine travel anomalies, and investigate alerts.
+              </p>
+            </div>
+          </div>
+        );
+      case RBAC_ROLES.INCIDENT_RESPONDER:
+        return (
+          <div className="glass-panel p-6 border-red-500/30 bg-gradient-to-r from-red-900/20 via-amber-900/20 to-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4 glow-severity-high">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/40">
+                  INCIDENT RESPONDER COMMAND CENTER
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Threat Containment</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">Active Incident Containment & Account Isolation Portal</h2>
+              <p className="text-xs text-slate-300 mt-1">
+                Isolate compromised accounts, force session logouts, block malicious IP addresses, update incident statuses, and log forensic notes.
+              </p>
+            </div>
+          </div>
+        );
+      case RBAC_ROLES.SEC_ADMIN:
+        return (
+          <div className="glass-panel p-6 border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-indigo-900/20 to-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                  SECURITY ADMIN IAM PORTAL
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Identity & Access Management</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">Workforce Identity Provisioning & Account Governance</h2>
+              <p className="text-xs text-slate-300 mt-1">
+                Manage employee lifecycle, enable/disable accounts, reset passwords/MFA, unlock security lockouts, and manage RBAC roles.
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
+      
+      {/* 0. ROLE-SPECIFIC CONSOLE BANNER */}
+      {renderRoleHeader()}
+
+      {/* ------------------------------------------------------------- */}
+      {/* ROLE SPECIALIZED PANELS */}
+      {/* ------------------------------------------------------------- */}
+      {currentRole === RBAC_ROLES.SOC_MANAGER && (
+        <div className="glass-panel p-6 border-emerald-500/20 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" /> SOC Analyst Workload Distribution & SLA Compliance
+            </h3>
+            <span className="text-xs text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/30">
+              SLA Compliance: 98.4%
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px]">
+                  <th className="pb-2">SOC Analyst</th>
+                  <th className="pb-2">Assigned Alerts</th>
+                  <th className="pb-2">Resolved Today</th>
+                  <th className="pb-2">Avg MTTR</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {SOC_ANALYSTS.map((analystName) => {
+                  const assignedCount = alerts.filter((a) => a.assignedAnalyst === analystName).length;
+                  const resolvedCount = alerts.filter((a) => a.assignedAnalyst === analystName && a.status === "resolved").length;
+                  return (
+                    <tr key={analystName} className="hover:bg-white/5">
+                      <td className="py-2.5 text-white font-bold">{analystName}</td>
+                      <td className="py-2.5 text-indigo-300">{assignedCount} incidents</td>
+                      <td className="py-2.5 text-emerald-400">{resolvedCount} resolved</td>
+                      <td className="py-2.5 text-slate-300">14.2 mins</td>
+                      <td className="py-2.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          ON DUTY
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {currentRole === RBAC_ROLES.INCIDENT_RESPONDER && (
+        <div className="glass-panel p-6 border-red-500/30 bg-red-500/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-400 animate-pulse" /> Active Threat Containment Desk
+            </h3>
+            <span className="text-xs text-red-300 font-semibold bg-red-500/20 px-2.5 py-0.5 rounded border border-red-500/40">
+              {alerts.filter((a) => !a.resolved && a.status !== "resolved").length} Unresolved Threats
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] font-mono">
+                  <th className="pb-2">Alert ID</th>
+                  <th className="pb-2">Target User</th>
+                  <th className="pb-2">Threat Anomaly</th>
+                  <th className="pb-2">Severity</th>
+                  <th className="pb-2">Containment Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                {alerts.filter((a) => !a.resolved && a.status !== "resolved").slice(0, 5).map((alt) => {
+                  const targetUser = usersList.find((u) => u.email === alt.email || u.empId === alt.empId);
+                  const isLocked = targetUser?.locked || targetUser?.accountStatus === "Locked";
+                  return (
+                    <tr key={alt.id} className="hover:bg-white/5">
+                      <td className="py-2.5 text-slate-300 font-bold">{alt.id}</td>
+                      <td className="py-2.5 text-indigo-300">{alt.name || alt.empName || alt.email}</td>
+                      <td className="py-2.5 text-slate-200">{alt.title || alt.threatType}</td>
+                      <td className="py-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          alt.severity === "critical" ? "bg-red-600/30 text-red-200" : "bg-amber-500/20 text-amber-300"
+                        }`}>
+                          {alt.severity}
+                        </span>
+                      </td>
+                      <td className="py-2.5 flex items-center space-x-2">
+                        {isLocked ? (
+                          <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> LOCKED
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => lockUser(targetUser?.id || alt.empId || alt.email, "Incident Responder Lockout")}
+                            className="px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-[10px] font-bold flex items-center gap-1"
+                          >
+                            <Lock className="w-3 h-3" /> Lock Account
+                          </button>
+                        )}
+                        <button
+                          onClick={() => resolveAlert(alt.id)}
+                          className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold"
+                        >
+                          Resolve
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {currentRole === RBAC_ROLES.SEC_ADMIN && (
+        <div className="glass-panel p-6 border-purple-500/30 bg-purple-500/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-400" /> Account Status Remediation Desk
+            </h3>
+            <span className="text-xs text-purple-300 font-semibold bg-purple-500/20 px-2.5 py-0.5 rounded border border-purple-500/40">
+              {usersList.filter((u) => u.locked || u.disabled).length} Restrictive Accounts
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Locked Accounts Queue */}
+            <div className="p-4 rounded-xl glass-card bg-black/30 space-y-2">
+              <div className="text-xs font-bold text-purple-300 uppercase flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" /> Security Locked Accounts ({usersList.filter((u) => u.locked).length})
+              </div>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {usersList.filter((u) => u.locked).map((usr) => (
+                  <div key={usr.id || usr.empId} className="p-2 rounded bg-black/40 border border-white/5 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-white block">{usr.name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{usr.empId} • {usr.email}</span>
+                    </div>
+                    <button
+                      onClick={() => unlockUser(usr.id || usr.empId || usr.email)}
+                      className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1"
+                    >
+                      <Unlock className="w-3 h-3" /> Unlock
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Disabled Accounts Queue */}
+            <div className="p-4 rounded-xl glass-card bg-black/30 space-y-2">
+              <div className="text-xs font-bold text-red-300 uppercase flex items-center gap-1.5">
+                <UserX className="w-3.5 h-3.5" /> Deactivated Profiles ({usersList.filter((u) => u.disabled).length})
+              </div>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {usersList.filter((u) => u.disabled).map((usr) => (
+                  <div key={usr.id || usr.empId} className="p-2 rounded bg-black/40 border border-white/5 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-white block">{usr.name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{usr.empId} • {usr.email}</span>
+                    </div>
+                    <button
+                      onClick={() => enableUser(usr.id || usr.empId || usr.email)}
+                      className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1"
+                    >
+                      <UserCheck className="w-3 h-3" /> Enable
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* ------------------------------------------------------------- */}
       {/* 1. 14 METRIC CARDS GRID */}

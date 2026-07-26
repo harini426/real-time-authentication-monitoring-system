@@ -98,14 +98,14 @@ export function AlertManagement() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="glass-input px-3 py-1.5 text-xs bg-[#0f172a] text-white"
+            className="glass-input px-3 py-1.5 text-xs bg-[#111827] text-white cursor-pointer relative z-20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 border border-white/15"
           >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="investigating">Investigating</option>
-            <option value="resolved">Resolved</option>
-            <option value="ignored">Ignored</option>
-            <option value="escalated">Escalated</option>
+            <option value="all" className="bg-[#111827] text-white">All Statuses</option>
+            <option value="active" className="bg-[#111827] text-white">Active</option>
+            <option value="investigating" className="bg-[#111827] text-white">Investigating</option>
+            <option value="resolved" className="bg-[#111827] text-white">Resolved</option>
+            <option value="ignored" className="bg-[#111827] text-white">Ignored</option>
+            <option value="escalated" className="bg-[#111827] text-white">Escalated</option>
           </select>
 
         </div>

@@ -98,11 +98,11 @@ export function UserManagement() {
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="glass-input px-3 py-1.5 text-xs bg-[#0f172a] text-white"
+            className="glass-input px-3 py-1.5 text-xs bg-[#111827] text-white cursor-pointer relative z-20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 border border-white/15"
           >
-            <option value="all">All Departments</option>
+            <option value="all" className="bg-[#111827] text-white">All Departments</option>
             {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
+              <option key={d} value={d} className="bg-[#111827] text-white">{d}</option>
             ))}
           </select>
 
@@ -110,23 +110,23 @@ export function UserManagement() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="glass-input px-3 py-1.5 text-xs bg-[#0f172a] text-white"
+            className="glass-input px-3 py-1.5 text-xs bg-[#111827] text-white cursor-pointer relative z-20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 border border-white/15"
           >
-            <option value="all">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Locked">Locked</option>
-            <option value="Disabled">Disabled</option>
+            <option value="all" className="bg-[#111827] text-white">All Statuses</option>
+            <option value="Active" className="bg-[#111827] text-white">Active</option>
+            <option value="Locked" className="bg-[#111827] text-white">Locked</option>
+            <option value="Disabled" className="bg-[#111827] text-white">Disabled</option>
           </select>
 
           {/* Role Filter */}
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="glass-input px-3 py-1.5 text-xs bg-[#0f172a] text-white"
+            className="glass-input px-3 py-1.5 text-xs bg-[#111827] text-white cursor-pointer relative z-20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 border border-white/15"
           >
-            <option value="all">All Roles</option>
+            <option value="all" className="bg-[#111827] text-white">All Roles</option>
             {Object.values(RBAC_ROLES).map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r} className="bg-[#111827] text-white">{r}</option>
             ))}
           </select>
 
@@ -232,40 +232,48 @@ export function UserManagement() {
                   
                   {/* Lock / Unlock */}
                   {isLocked ? (
-                    <button
-                      onClick={() => unlockUser(usr.id || usr.empId || usr.email)}
-                      className="py-1 px-2 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
-                    >
-                      <Unlock className="w-3 h-3" />
-                      <span>Unlock</span>
-                    </button>
+                    hasPermission("canUnlockUsers") && (
+                      <button
+                        onClick={() => unlockUser(usr.id || usr.empId || usr.email)}
+                        className="py-1 px-2 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
+                      >
+                        <Unlock className="w-3 h-3" />
+                        <span>Unlock</span>
+                      </button>
+                    )
                   ) : (
-                    <button
-                      onClick={() => lockUser(usr.id || usr.empId || usr.email, "Administrative Manual Lockout")}
-                      className="py-1 px-2 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
-                    >
-                      <Lock className="w-3 h-3" />
-                      <span>Lock</span>
-                    </button>
+                    hasPermission("canLockUsers") && (
+                      <button
+                        onClick={() => lockUser(usr.id || usr.empId || usr.email, "Administrative Manual Lockout")}
+                        className="py-1 px-2 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
+                      >
+                        <Lock className="w-3 h-3" />
+                        <span>Lock</span>
+                      </button>
+                    )
                   )}
 
                   {/* Disable / Enable */}
                   {isDisabled ? (
-                    <button
-                      onClick={() => enableUser(usr.id || usr.empId || usr.email)}
-                      className="py-1 px-2 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
-                    >
-                      <UserCheck className="w-3 h-3" />
-                      <span>Enable</span>
-                    </button>
+                    (hasPermission("canDisableUsers") || hasPermission("canEnableDisableAccounts")) && (
+                      <button
+                        onClick={() => enableUser(usr.id || usr.empId || usr.email)}
+                        className="py-1 px-2 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-bold flex items-center justify-center space-x-1"
+                      >
+                        <UserCheck className="w-3 h-3" />
+                        <span>Enable</span>
+                      </button>
+                    )
                   ) : (
-                    <button
-                      onClick={() => disableUser(usr.id || usr.empId || usr.email, "HR Deactivation Policy")}
-                      className="py-1 px-2 rounded bg-red-600/30 text-red-200 hover:bg-red-600/40 text-[10px] font-bold flex items-center justify-center space-x-1"
-                    >
-                      <UserX className="w-3 h-3" />
-                      <span>Disable</span>
-                    </button>
+                    (hasPermission("canDisableUsers") || hasPermission("canEnableDisableAccounts")) && (
+                      <button
+                        onClick={() => disableUser(usr.id || usr.empId || usr.email, "HR Deactivation Policy")}
+                        className="py-1 px-2 rounded bg-red-600/30 text-red-200 hover:bg-red-600/40 text-[10px] font-bold flex items-center justify-center space-x-1"
+                      >
+                        <UserX className="w-3 h-3" />
+                        <span>Disable</span>
+                      </button>
+                    )
                   )}
 
                 </div>

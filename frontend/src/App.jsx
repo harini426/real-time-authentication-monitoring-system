@@ -6,9 +6,10 @@ import { Dashboard } from "./components/Dashboard";
 import { AlertManagement } from "./components/AlertManagement";
 import { UserManagement } from "./components/UserManagement";
 import { EmployeeProfile } from "./components/EmployeeProfile";
+import { AccessDenied } from "./components/AccessDenied";
 import { AttackSimulatorModal } from "./components/AttackSimulatorModal";
 import { Shield, RefreshCw } from "lucide-react";
-import { RBAC_ROLES } from "./services/enterpriseData";
+import { RBAC_ROLES, ROLE_PERMISSIONS } from "./services/enterpriseData";
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -55,7 +56,7 @@ class ErrorBoundary extends Component {
 }
 
 function MainContent() {
-  const { currentUser, loading, role, hasPermission } = useAuth();
+  const { currentUser, loading, role } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showSimulator, setShowSimulator] = useState(false);
 
@@ -74,28 +75,40 @@ function MainContent() {
     return <AuthPage />;
   }
 
-  // Employee role redirect to profile view if not authorized for global dashboard
-  const userRole = role || currentUser.role || RBAC_ROLES.EMPLOYEE;
-  const isEmployeeOnly = userRole === RBAC_ROLES.EMPLOYEE || !hasPermission("canViewGlobalDashboard");
-  const currentTab = isEmployeeOnly && activeTab === "dashboard" ? "my_profile" : activeTab;
+  // Determine user role and authorized navigation tabs
+  const userRole = role || currentUser.role || RBAC_ROLES.SUPER_ADMIN;
+  const rolePerms = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS[RBAC_ROLES.EMPLOYEE];
+  const allowedTabs = rolePerms.allowedTabs || ["dashboard", "my_profile"];
+  
+  const isAuthorized = allowedTabs.includes(activeTab);
+  const defaultHomeTab = allowedTabs[0] || "my_profile";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
       <Navbar
         onOpenSimulator={() => setShowSimulator(true)}
-        activeTab={currentTab}
+        activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {currentTab === "dashboard" && <Dashboard />}
-        {currentTab === "alerts" && <AlertManagement />}
-        {currentTab === "users" && <UserManagement />}
-        {currentTab === "my_profile" && <EmployeeProfile />}
+        {!isAuthorized ? (
+          <AccessDenied
+            requestedTab={activeTab}
+            onRedirect={() => setActiveTab(defaultHomeTab)}
+          />
+        ) : (
+          <>
+            {activeTab === "dashboard" && <Dashboard />}
+            {activeTab === "alerts" && <AlertManagement />}
+            {activeTab === "users" && <UserManagement />}
+            {activeTab === "my_profile" && <EmployeeProfile />}
+          </>
+        )}
       </main>
 
       <footer className="w-full glass-panel rounded-none border-x-0 border-b-0 border-t-white/10 py-4 px-6 text-center text-xs text-slate-400">
-        Enterprise Real-Time Employee Authentication Monitoring & Threat Detection System • Firebase Firestore & Glassmorphism SOC Platform
+        Enterprise Real-Time Employee Authentication Monitoring & Threat Detection System • Role-Based Access Control (RBAC) Architecture
       </footer>
 
       {showSimulator && (
