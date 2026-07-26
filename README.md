@@ -61,13 +61,20 @@ Open `http://localhost:3000` to interact with the dashboard immediately!
 2. Enable **Authentication** (Email/Password) and **Cloud Firestore**.
 3. Create a `.env` file in the `frontend` folder ([frontend/.env](file:///c:/Users/harini/Desktop/Real-time%20authentication%20monitoring%20&%20threat%20detection%20system/frontend/.env)):
    ```env
-  VapiKey : "AIzaSyBHWVEDxDAhk69MlB9rIkHcUcYnsixxKz8",
-  authDomain : "auth-threat-monitor-70301.firebaseapp.com",
-  projectId : "auth-threat-monitor-70301",
-  storageBucket : "auth-threat-monitor-70301.firebasestorage.app",
-  messagingSenderId : "379409973675",
-  appId : "1:379409973675:web:8f644971b11026f60a52ee",
-  measurementId : "G-JPDLZ7W9V2"
+  ## ⚙️ Firebase Configuration
+
+Add this configuration to your Firebase initialization file:
+
+```javascript
+const firebaseConfig = {
+  apiKey: "AIzaSyBHWVEDxDAhk69MlB9rIkHcUcYnsixxKz8",
+  authDomain: "auth-threat-monitor-70301.firebaseapp.com",
+  projectId: "auth-threat-monitor-70301",
+  storageBucket: "auth-threat-monitor-70301.firebasestorage.app",
+  messagingSenderId: "379409973675",
+  appId: "1:379409973675:web:8f644971b11026f60a52ee",
+  measurementId: "G-JPDLZ7W9V2"
+};
 
    ```
 4. Deploy Firestore Rules:
