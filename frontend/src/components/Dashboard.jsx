@@ -5,14 +5,22 @@ import {
   Activity, 
   UserX, 
   Globe, 
-  CheckCircle, 
   AlertTriangle, 
-  Clock, 
-  Filter, 
-  Eye, 
-  ChevronRight,
+  Users, 
+  Shield, 
+  Flame, 
   TrendingUp,
-  Server
+  Server,
+  Lock,
+  Laptop,
+  Clock,
+  LogOut,
+  MapPin,
+  CheckCircle,
+  BarChart3,
+  PieChart as PieIcon,
+  Layers,
+  ChevronRight
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -22,37 +30,60 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
   BarChart, 
-  Bar 
+  Bar, 
+  Cell,
+  PieChart,
+  Pie
 } from "recharts";
 import { LocationMap } from "./LocationMap";
 import { AlertDetailModal } from "./AlertDetailModal";
 
 export function Dashboard() {
-  const { loginAttempts, alerts, usersList, resolveAlert } = useAuth();
+  const { 
+    loginAttempts = [], 
+    alerts = [], 
+    usersList = [], 
+    activeSessions = [], 
+    resolveAlert, 
+    terminateSession 
+  } = useAuth();
+  
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  // Metrics Calculations
+  // -------------------------------------------------------------
+  // 14 METRIC CARDS CALCULATIONS
+  // -------------------------------------------------------------
+  const totalEmployees = usersList.length;
   const totalLogins = loginAttempts.length;
-  const failedLogins = loginAttempts.filter((a) => a.status === "failed").length;
-  const activeAlerts = alerts.filter((a) => !a.resolved);
-  const lockedUsersCount = usersList.filter((u) => u.locked).length;
+  const failedLogins = loginAttempts.filter((a) => a && a.status === "failed").length;
+  const activeSessionsCount = activeSessions.length;
+  const onlineEmployeesCount = new Set(activeSessions.map((s) => s.email)).size;
+  const offlineEmployeesCount = Math.max(0, totalEmployees - onlineEmployeesCount);
+  const lockedAccountsCount = usersList.filter((u) => u && (u.locked || u.accountStatus === "Locked")).length;
+  const disabledAccountsCount = usersList.filter((u) => u && (u.disabled || u.accountStatus === "Disabled")).length;
+  
+  const activeThreatsCount = alerts.filter((a) => a && !a.resolved && a.status !== "resolved").length;
+  const criticalAlertsCount = alerts.filter((a) => a && a.severity === "critical").length;
+  const highAlertsCount = alerts.filter((a) => a && a.severity === "high").length;
+  const mediumAlertsCount = alerts.filter((a) => a && a.severity === "medium").length;
+  const lowAlertsCount = alerts.filter((a) => a && a.severity === "low").length;
 
-  const uniqueLocationsSet = new Set(
-    loginAttempts
-      .map((a) => (a.location ? `${a.location.city || ""}, ${a.location.country || ""}` : null))
-      .filter(Boolean)
+  const uniqueCountriesSet = new Set(
+    loginAttempts.map((a) => a?.country || (typeof a?.location === "object" ? a.location?.country : null)).filter(Boolean)
   );
-  const uniqueLocationsCount = uniqueLocationsSet.size;
+  const uniqueCountriesCount = uniqueCountriesSet.size || 1;
 
-  // Recharts Data Prep: Login Activity Over Time
+  // -------------------------------------------------------------
+  // RECHARTS PREPARATION DATA
+  // -------------------------------------------------------------
+  
+  // 1. Login Activity Timeline
   const attemptsByHour = {};
-  loginAttempts.forEach((att) => {
-    const time = new Date(att.timestamp);
+  loginAttempts.slice().reverse().forEach((att) => {
+    if (!att) return;
+    const time = new Date(att.timestamp || att.loginTime || Date.now());
     const hourLabel = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     if (!attemptsByHour[hourLabel]) {
       attemptsByHour[hourLabel] = { time: hourLabel, success: 0, failed: 0 };
@@ -60,22 +91,70 @@ export function Dashboard() {
     if (att.status === "success") attemptsByHour[hourLabel].success += 1;
     else attemptsByHour[hourLabel].failed += 1;
   });
-  const chartData = Object.values(attemptsByHour).reverse().slice(-12);
+  const loginTimelineData = Object.values(attemptsByHour).slice(-12);
 
-  // Severity Distribution Data
-  const severityCounts = {
-    high: alerts.filter((a) => a.severity === "high").length,
-    medium: alerts.filter((a) => a.severity === "medium").length,
-    low: alerts.filter((a) => a.severity === "low").length
-  };
+  // 2. Threat Severity Chart Data
   const severityChartData = [
-    { name: "High Severity", count: severityCounts.high, color: "#ef4444" },
-    { name: "Medium Severity", count: severityCounts.medium, color: "#f59e0b" },
-    { name: "Low Severity", count: severityCounts.low, color: "#06b6d4" }
+    { name: "Critical", count: criticalAlertsCount, color: "#dc2626" },
+    { name: "High", count: highAlertsCount, color: "#ef4444" },
+    { name: "Medium", count: mediumAlertsCount, color: "#f59e0b" },
+    { name: "Low", count: lowAlertsCount, color: "#06b6d4" }
   ];
 
-  // Filtered Alerts
+  // 3. Login Success vs Failure Donut Chart Data
+  const successVsFailureData = [
+    { name: "Success", value: totalLogins - failedLogins, color: "#6366f1" },
+    { name: "Failed", value: failedLogins, color: "#ef4444" }
+  ];
+
+  // 4. Failed Login Trend
+  const failedTrendData = loginTimelineData.map((d) => ({ time: d.time, failed: d.failed }));
+
+  // 5. Top Attack Countries
+  const countryCounts = {};
+  loginAttempts.forEach((a) => {
+    const c = a?.country || "United States";
+    countryCounts[c] = (countryCounts[c] || 0) + 1;
+  });
+  const topCountriesData = Object.entries(countryCounts)
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // 6. Top Cities
+  const cityCounts = {};
+  loginAttempts.forEach((a) => {
+    const c = a?.city || "San Jose";
+    cityCounts[c] = (cityCounts[c] || 0) + 1;
+  });
+  const topCitiesData = Object.entries(cityCounts)
+    .map(([city, count]) => ({ city, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // 7. Top Browsers
+  const browserCounts = {};
+  loginAttempts.forEach((a) => {
+    const b = (a?.browser || "Chrome Enterprise").split(" ")[0];
+    browserCounts[b] = (browserCounts[b] || 0) + 1;
+  });
+  const topBrowsersData = Object.entries(browserCounts)
+    .map(([browser, count]) => ({ browser, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // 8. Top Devices
+  const deviceCounts = {};
+  loginAttempts.forEach((a) => {
+    const d = a?.os || "Windows 11 Enterprise";
+    deviceCounts[d] = (deviceCounts[d] || 0) + 1;
+  });
+  const topDevicesData = Object.entries(deviceCounts)
+    .map(([os, count]) => ({ os, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Filtered Alerts Feed
   const filteredAlerts = alerts.filter((a) => {
+    if (!a) return false;
     if (severityFilter === "all") return true;
     return a.severity === severityFilter;
   });
@@ -83,105 +162,146 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       
-      {/* 1. TOP METRICS CARDS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* ------------------------------------------------------------- */}
+      {/* 1. 14 METRIC CARDS GRID */}
+      {/* ------------------------------------------------------------- */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         
+        {/* Total Employees */}
+        <div className="glass-card p-3 border-white/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Workforce</div>
+          <div className="text-xl font-bold text-white mt-1 font-mono">{totalEmployees}</div>
+          <div className="text-[9px] text-indigo-400 mt-1 flex items-center gap-1">
+            <Users className="w-3 h-3" /> Enrolled
+          </div>
+        </div>
+
         {/* Total Logins */}
-        <div className="glass-card p-4 border-white/10 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Logins</div>
-            <div className="text-2xl font-bold text-white mt-1 font-mono">{totalLogins}</div>
-            <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              <span>Real-time Stream</span>
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
-            <Activity className="w-6 h-6" />
+        <div className="glass-card p-3 border-white/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Logins</div>
+          <div className="text-xl font-bold text-white mt-1 font-mono">{totalLogins}</div>
+          <div className="text-[9px] text-emerald-400 mt-1 flex items-center gap-1">
+            <Activity className="w-3 h-3" /> Firestore Stream
           </div>
         </div>
 
-        {/* Failed Attempts */}
-        <div className="glass-card p-4 border-white/10 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Failed Attempts</div>
-            <div className="text-2xl font-bold text-amber-400 mt-1 font-mono">{failedLogins}</div>
-            <div className="text-[10px] text-slate-400 mt-1">
-              {totalLogins > 0 ? `${Math.round((failedLogins / totalLogins) * 100)}% Failure Rate` : '0%'}
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-            <AlertTriangle className="w-6 h-6" />
+        {/* Failed Logins */}
+        <div className="glass-card p-3 border-white/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Failed Logins</div>
+          <div className="text-xl font-bold text-amber-400 mt-1 font-mono">{failedLogins}</div>
+          <div className="text-[9px] text-amber-300 mt-1 font-semibold">
+            {totalLogins > 0 ? `${Math.round((failedLogins / totalLogins) * 100)}% Failed` : '0%'}
           </div>
         </div>
 
-        {/* Active Threat Alerts */}
-        <div className="glass-card p-4 border-red-500/30 bg-red-500/5 glow-severity-high flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold text-red-300 uppercase tracking-wider">Active Threats</div>
-            <div className="text-2xl font-bold text-red-400 mt-1 font-mono">{activeAlerts.length}</div>
-            <div className="text-[10px] text-red-300 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
-              <span>Requires SecOps Action</span>
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
+        {/* Active Sessions */}
+        <div className="glass-card p-3 border-indigo-500/30 bg-indigo-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Active Sessions</div>
+          <div className="text-xl font-bold text-indigo-400 mt-1 font-mono">{activeSessionsCount}</div>
+          <div className="text-[9px] text-indigo-300 mt-1">Live Tokens</div>
         </div>
 
-        {/* Unique Locations */}
-        <div className="glass-card p-4 border-white/10 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Unique Locations</div>
-            <div className="text-2xl font-bold text-cyan-400 mt-1 font-mono">{uniqueLocationsCount}</div>
-            <div className="text-[10px] text-cyan-300 mt-1">Geographic Origins</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-            <Globe className="w-6 h-6" />
-          </div>
+        {/* Online Employees */}
+        <div className="glass-card p-3 border-emerald-500/30 bg-emerald-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Online Workforce</div>
+          <div className="text-xl font-bold text-emerald-400 mt-1 font-mono">{onlineEmployeesCount}</div>
+          <div className="text-[9px] text-emerald-300 mt-1">Authenticated Now</div>
+        </div>
+
+        {/* Offline Employees */}
+        <div className="glass-card p-3 border-white/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Offline Workforce</div>
+          <div className="text-xl font-bold text-slate-300 mt-1 font-mono">{offlineEmployeesCount}</div>
+          <div className="text-[9px] text-slate-400 mt-1">No Active Session</div>
         </div>
 
         {/* Locked Accounts */}
-        <div className="glass-card p-4 border-white/10 flex items-center justify-between sm:col-span-2 lg:col-span-1">
-          <div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Lockouts</div>
-            <div className="text-2xl font-bold text-purple-400 mt-1 font-mono">{lockedUsersCount}</div>
-            <div className="text-[10px] text-slate-400 mt-1">Automated Auto-Lock</div>
+        <div className="glass-card p-3 border-purple-500/30 bg-purple-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Locked Accounts</div>
+          <div className="text-xl font-bold text-purple-400 mt-1 font-mono">{lockedAccountsCount}</div>
+          <div className="text-[9px] text-purple-300 mt-1">Auto Security Lock</div>
+        </div>
+
+        {/* Disabled Accounts */}
+        <div className="glass-card p-3 border-red-500/30 bg-red-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-red-300 uppercase tracking-wider">Disabled Profiles</div>
+          <div className="text-xl font-bold text-red-400 mt-1 font-mono">{disabledAccountsCount}</div>
+          <div className="text-[9px] text-red-300 mt-1">HR Policy Action</div>
+        </div>
+
+        {/* Active Threats */}
+        <div className="glass-card p-3 border-red-500/40 bg-red-500/10 glow-severity-high flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-red-200 uppercase tracking-wider">Active Threats</div>
+          <div className="text-xl font-bold text-red-400 mt-1 font-mono">{activeThreatsCount}</div>
+          <div className="text-[9px] text-red-300 mt-1 font-semibold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" /> Action Needed
           </div>
-          <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400">
-            <UserX className="w-6 h-6" />
-          </div>
+        </div>
+
+        {/* Critical Alerts */}
+        <div className="glass-card p-3 border-red-600/40 bg-red-600/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-red-300 uppercase tracking-wider">Critical Alerts</div>
+          <div className="text-xl font-bold text-red-400 mt-1 font-mono">{criticalAlertsCount}</div>
+          <div className="text-[9px] text-red-400 mt-1">Immediate SecOps</div>
+        </div>
+
+        {/* High Alerts */}
+        <div className="glass-card p-3 border-amber-500/30 bg-amber-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">High Alerts</div>
+          <div className="text-xl font-bold text-amber-400 mt-1 font-mono">{highAlertsCount}</div>
+          <div className="text-[9px] text-amber-300 mt-1">Velocity/Country</div>
+        </div>
+
+        {/* Medium Alerts */}
+        <div className="glass-card p-3 border-amber-400/30 bg-amber-400/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-amber-200 uppercase tracking-wider">Medium Alerts</div>
+          <div className="text-xl font-bold text-amber-300 mt-1 font-mono">{mediumAlertsCount}</div>
+          <div className="text-[9px] text-amber-200 mt-1">Device/IP Anomaly</div>
+        </div>
+
+        {/* Low Alerts */}
+        <div className="glass-card p-3 border-cyan-500/30 bg-cyan-500/5 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Low Alerts</div>
+          <div className="text-xl font-bold text-cyan-400 mt-1 font-mono">{lowAlertsCount}</div>
+          <div className="text-[9px] text-cyan-300 mt-1">Off-Hours Login</div>
+        </div>
+
+        {/* Unique Countries */}
+        <div className="glass-card p-3 border-white/10 flex flex-col justify-between">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unique Countries</div>
+          <div className="text-xl font-bold text-cyan-300 mt-1 font-mono">{uniqueCountriesCount}</div>
+          <div className="text-[9px] text-cyan-300 mt-1">Global Origins</div>
         </div>
 
       </div>
 
-      {/* 2. CHARTS SECTION */}
+      {/* ------------------------------------------------------------- */}
+      {/* 2. MAIN CHARTS ROW (LOGIN TIMELINE + THREAT TIMELINE + SEVERITY) */}
+      {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Main Timeline Chart (8 Cols) */}
-        <div className="lg:col-span-8 glass-panel p-6 border-white/10">
+        {/* Widget 4: Login Timeline Chart (6 Cols) */}
+        <div className="lg:col-span-6 glass-panel p-5 border-white/10">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-indigo-400" />
                 <span>Authentication Activity Timeline</span>
               </h3>
-              <p className="text-xs text-slate-400">Real-time breakdown of Successful vs Failed authentications</p>
+              <p className="text-[11px] text-slate-400">Real-time Stream: Success vs Failed Logins</p>
             </div>
-            <div className="flex items-center space-x-4 text-xs">
-              <span className="flex items-center gap-1.5 text-indigo-300">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Success
+            <div className="flex items-center space-x-3 text-[11px]">
+              <span className="flex items-center gap-1 text-indigo-300">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" /> Success
               </span>
-              <span className="flex items-center gap-1.5 text-red-300">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Failed
+              <span className="flex items-center gap-1 text-red-300">
+                <span className="w-2 h-2 rounded-full bg-red-500" /> Failed
               </span>
             </div>
           </div>
-
-          <div className="h-64 w-full">
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={loginTimelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.6} />
@@ -193,122 +313,134 @@ export function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.9)",
-                    borderColor: "rgba(255,255,255,0.2)",
-                    borderRadius: "0.75rem",
-                    backdropFilter: "blur(12px)",
-                    color: "#fff"
-                  }}
-                />
-                <Area type="monotone" dataKey="success" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorSuccess)" />
-                <Area type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorFailed)" />
+                <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.2)", borderRadius: "0.5rem", color: "#fff", fontSize: "11px" }} />
+                <Area type="monotone" dataKey="success" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorSuccess)" name="Successful" />
+                <Area type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorFailed)" name="Failed" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Severity Distribution Chart (4 Cols) */}
-        <div className="lg:col-span-4 glass-panel p-6 border-white/10">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-white">Threat Severity Breakdown</h3>
-            <p className="text-xs text-slate-400">Distribution of active and historic alerts</p>
+        {/* Widget 5 & 6: Threat Severity Distribution & Success vs Fail (6 Cols) */}
+        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Widget 6: Threat Severity Chart */}
+          <div className="glass-panel p-5 border-white/10 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-amber-400" />
+                <span>Threat Severity Breakdown</span>
+              </h3>
+              <p className="text-[11px] text-slate-400">Distribution across active alerts</p>
+            </div>
+            <div className="h-44 w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={severityChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 9 }} />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 9 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.2)", borderRadius: "0.5rem", color: "#fff", fontSize: "11px" }} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {severityChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          <div className="h-64 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={severityChartData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 10 }} />
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.9)",
-                    borderColor: "rgba(255,255,255,0.2)",
-                    borderRadius: "0.75rem",
-                    color: "#fff"
-                  }}
-                />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                  {severityChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Widget 7: Login Success vs Failure Donut */}
+          <div className="glass-panel p-5 border-white/10 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <PieIcon className="w-4 h-4 text-emerald-400" />
+                <span>Success vs Failure Ratio</span>
+              </h3>
+              <p className="text-[11px] text-slate-400">Overall authentication outcomes</p>
+            </div>
+            <div className="h-44 w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={successVsFailureData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={35}
+                    outerRadius={55}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {successVsFailureData.map((entry, index) => (
+                      <Cell key={`cell-pie-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.2)", borderRadius: "0.5rem", color: "#fff", fontSize: "11px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+
         </div>
 
       </div>
 
-      {/* 3. ALERTS & LIVE FEED ROW */}
+      {/* ------------------------------------------------------------- */}
+      {/* 3. FEEDS & TABLES ROW (LIVE THREAT FEED + LIVE LOGIN FEED) */}
+      {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Real-time Threat Alerts Feed (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 border-white/10 flex flex-col justify-between">
+        {/* Widget 3: Real-Time Threat Feed (5 Cols) */}
+        <div className="lg:col-span-5 glass-panel p-5 border-white/10 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-red-400" />
-                  <span>Live Threat Alerts</span>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
+                  <span>Real-Time Threat Feed</span>
                 </h3>
-                <p className="text-xs text-slate-400">Real-time detection engine findings</p>
+                <p className="text-[11px] text-slate-400">Live detection engine findings</p>
               </div>
 
               {/* Severity Filter */}
               <div className="flex items-center space-x-1 glass-card p-1 rounded-lg">
-                <button
-                  onClick={() => setSeverityFilter("all")}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded ${
-                    severityFilter === "all" ? "bg-white/20 text-white" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setSeverityFilter("high")}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded ${
-                    severityFilter === "high" ? "bg-red-500/30 text-red-300" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  High
-                </button>
-                <button
-                  onClick={() => setSeverityFilter("medium")}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded ${
-                    severityFilter === "medium" ? "bg-amber-500/30 text-amber-300" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Med
-                </button>
+                {["all", "critical", "high", "medium"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setSeverityFilter(f)}
+                    className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded ${
+                      severityFilter === f ? "bg-white/20 text-white" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
               {filteredAlerts.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs glass-card">
-                  No threat alerts found matching current filter.
+                <div className="p-6 text-center text-slate-400 text-xs glass-card">
+                  No active threat alerts matching filter.
                 </div>
               ) : (
                 filteredAlerts.map((alt) => (
                   <div
                     key={alt.id}
-                    className={`glass-card p-4 rounded-xl cursor-pointer border transition ${
-                      alt.severity === "high"
-                        ? "glow-severity-high"
-                        : alt.severity === "medium"
-                        ? "glow-severity-medium"
-                        : "glow-severity-low"
+                    className={`glass-card p-3 rounded-xl cursor-pointer border transition ${
+                      alt.severity === "critical" ? "glow-severity-high border-red-600/40 bg-red-600/10" :
+                      alt.severity === "high" ? "glow-severity-high border-red-500/40" :
+                      alt.severity === "medium" ? "glow-severity-medium border-amber-500/40" :
+                      "glow-severity-low border-cyan-500/40"
                     } ${alt.resolved ? "opacity-60" : ""}`}
                     onClick={() => setSelectedAlert(alt)}
                   >
-                    <div className="flex items-start justify-between mb-1.5">
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center space-x-1.5">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                          alt.severity === "critical" ? "bg-red-600/30 text-red-200 border border-red-600/50" :
                           alt.severity === "high" ? "bg-red-500/20 text-red-300 border border-red-500/40" :
                           alt.severity === "medium" ? "bg-amber-500/20 text-amber-300 border border-amber-500/40" :
                           "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
@@ -316,36 +448,23 @@ export function Dashboard() {
                           {alt.severity}
                         </span>
                         <span className="text-xs font-bold text-white capitalize">
-                          {alt.type.replace("_", " ")}
+                          {(alt.threatType || alt.type || "Threat").replace(/_/g, " ")}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(alt.timestamp).toLocaleTimeString()}
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {new Date(alt.timestamp || Date.now()).toLocaleTimeString()}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-300 line-clamp-2 mb-2">
+                    <p className="text-[11px] text-slate-300 line-clamp-2 mb-1.5">
                       {alt.details?.reason || "Anomaly flagged by detection engine."}
                     </p>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px]">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-white/5 text-[10px]">
                       <span className="text-indigo-300 font-mono">{alt.email}</span>
-                      <div className="flex items-center space-x-2">
-                        {!alt.resolved && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              resolveAlert(alt.id);
-                            }}
-                            className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
-                          >
-                            Resolve
-                          </button>
-                        )}
-                        <span className="text-slate-400 flex items-center gap-0.5">
-                          Diagnostics <ChevronRight className="w-3 h-3" />
-                        </span>
-                      </div>
+                      <span className="text-slate-400 flex items-center gap-0.5">
+                        Investigate <ChevronRight className="w-3 h-3" />
+                      </span>
                     </div>
                   </div>
                 ))
@@ -354,87 +473,251 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Live Login Stream Table (7 Cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Server className="w-5 h-5 text-cyan-400" />
-                <span>Live Authentication Stream</span>
-              </h3>
-              <p className="text-xs text-slate-400">Reactive Firestore onSnapshot telemetry feed</p>
-            </div>
-            <span className="text-[11px] font-mono text-slate-400">
-              Showing {loginAttempts.slice(0, 15).length} latest events
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-white/10 text-slate-400 font-semibold uppercase text-[10px]">
-                  <th className="pb-2.5 font-semibold">Timestamp</th>
-                  <th className="pb-2.5 font-semibold">User Email</th>
-                  <th className="pb-2.5 font-semibold">IP Address</th>
-                  <th className="pb-2.5 font-semibold">Location</th>
-                  <th className="pb-2.5 font-semibold">Device</th>
-                  <th className="pb-2.5 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 font-mono">
-                {loginAttempts.slice(0, 15).map((att) => (
-                  <tr key={att.id} className="hover:bg-white/5 transition">
-                    <td className="py-2.5 text-slate-400 text-[11px]">
-                      {new Date(att.timestamp).toLocaleTimeString()}
-                    </td>
-                    <td className="py-2.5 text-white font-medium truncate max-w-[140px]">
-                      {att.email}
-                    </td>
-                    <td className="py-2.5 text-indigo-300 text-[11px]">
-                      {att.ip}
-                    </td>
-                    <td className="py-2.5 text-slate-300 text-[11px]">
-                      {att.location ? `${att.location.city || ""}, ${att.location.country || ""}` : "Unknown"}
-                    </td>
-                    <td className="py-2.5 text-slate-400 truncate max-w-[130px] text-[11px]">
-                      {att.device || att.deviceInfo || "Unknown"}
-                    </td>
-                    <td className="py-2.5">
-                      {att.status === "success" ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                          SUCCESS
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/40">
-                          FAILED
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 4. GEOLOCATION MAP ROW */}
-      <div className="glass-panel p-6 border-white/10">
-        <div className="flex items-center justify-between mb-4">
+        {/* Widget 1 & 2: Live Login Feed & Active Sessions Table (7 Cols) */}
+        <div className="lg:col-span-7 glass-panel p-5 border-white/10 space-y-4">
+          
+          {/* Widget 2: Active Sessions Table */}
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Globe className="w-5 h-5 text-cyan-400" />
-              <span>Global Threat & Authentication Coordinates</span>
-            </h3>
-            <p className="text-xs text-slate-400">Interactive geographic visualization of authentication origins</p>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Laptop className="w-4 h-4 text-indigo-400" />
+                <span>Active Employee Sessions ({activeSessions.length})</span>
+              </h3>
+              <span className="text-[10px] text-slate-400">Tokens currently live</span>
+            </div>
+            <div className="overflow-x-auto max-h-44">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 font-semibold uppercase text-[9px]">
+                    <th className="pb-1.5">Employee</th>
+                    <th className="pb-1.5">IP</th>
+                    <th className="pb-1.5">Device</th>
+                    <th className="pb-1.5">Location</th>
+                    <th className="pb-1.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-mono text-[10px]">
+                  {activeSessions.slice(0, 5).map((s) => (
+                    <tr key={s.sessionId} className="hover:bg-white/5">
+                      <td className="py-1.5 text-white font-medium truncate max-w-[120px]">{s.email}</td>
+                      <td className="py-1.5 text-indigo-300">{s.ip}</td>
+                      <td className="py-1.5 text-slate-400 truncate max-w-[110px]">{s.device}</td>
+                      <td className="py-1.5 text-slate-300">{s.location}</td>
+                      <td className="py-1.5 text-right">
+                        <button
+                          onClick={() => terminateSession(s.sessionId)}
+                          className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[9px] font-bold"
+                        >
+                          Revoke
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Widget 1: Live Login Feed */}
+          <div className="pt-3 border-t border-white/10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Server className="w-4 h-4 text-cyan-400" />
+                <span>Live Authentication Stream (27 Fields Telemetry)</span>
+              </h3>
+              <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Real-time
+              </span>
+            </div>
+            <div className="overflow-x-auto max-h-48">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 font-semibold uppercase text-[9px]">
+                    <th className="pb-1.5">Time</th>
+                    <th className="pb-1.5">Employee ID</th>
+                    <th className="pb-1.5">User Email</th>
+                    <th className="pb-1.5">IP</th>
+                    <th className="pb-1.5">Location</th>
+                    <th className="pb-1.5">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-mono text-[10px]">
+                  {loginAttempts.slice(0, 10).map((att) => {
+                    if (!att) return null;
+                    return (
+                      <tr key={att.id} className="hover:bg-white/5">
+                        <td className="py-1.5 text-slate-400">
+                          {new Date(att.timestamp || att.loginTime || Date.now()).toLocaleTimeString()}
+                        </td>
+                        <td className="py-1.5 text-indigo-300 font-bold">{att.empId || "EMP-10001"}</td>
+                        <td className="py-1.5 text-white truncate max-w-[130px]">{att.email}</td>
+                        <td className="py-1.5 text-cyan-300">{att.ip || "0.0.0.0"}</td>
+                        <td className="py-1.5 text-slate-300">{att.city || "San Jose"}, {att.country || "USA"}</td>
+                        <td className="py-1.5">
+                          {att.status === "success" ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                              SUCCESS
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/40">
+                              FAILED
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 4. BREAKDOWN BAR CHARTS ROW (TOP COUNTRIES, TOP CITIES, BROWSERS, DEVICES) */}
+      {/* ------------------------------------------------------------- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Widget 9: Top Attack Countries */}
+        <div className="glass-panel p-4 border-white/10">
+          <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-cyan-400" /> Top Auth Countries
+          </h4>
+          <div className="space-y-1.5 text-[11px]">
+            {topCountriesData.map((item) => (
+              <div key={item.country} className="flex justify-between items-center p-1.5 rounded glass-card bg-black/20">
+                <span className="text-slate-300 truncate">{item.country}</span>
+                <span className="text-indigo-400 font-mono font-bold">{item.count}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <LocationMap loginAttempts={loginAttempts} />
+        {/* Widget 10: Top Cities */}
+        <div className="glass-panel p-4 border-white/10">
+          <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-amber-400" /> Top Auth Cities
+          </h4>
+          <div className="space-y-1.5 text-[11px]">
+            {topCitiesData.map((item) => (
+              <div key={item.city} className="flex justify-between items-center p-1.5 rounded glass-card bg-black/20">
+                <span className="text-slate-300 truncate">{item.city}</span>
+                <span className="text-amber-400 font-mono font-bold">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Widget 11: Top Browsers */}
+        <div className="glass-panel p-4 border-white/10">
+          <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+            <Laptop className="w-3.5 h-3.5 text-indigo-400" /> Top Browsers
+          </h4>
+          <div className="space-y-1.5 text-[11px]">
+            {topBrowsersData.slice(0, 5).map((item) => (
+              <div key={item.browser} className="flex justify-between items-center p-1.5 rounded glass-card bg-black/20">
+                <span className="text-slate-300 truncate">{item.browser}</span>
+                <span className="text-emerald-400 font-mono font-bold">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Widget 12: Top Operating Systems */}
+        <div className="glass-panel p-4 border-white/10">
+          <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-purple-400" /> Top Operating Systems
+          </h4>
+          <div className="space-y-1.5 text-[11px]">
+            {topDevicesData.slice(0, 5).map((item) => (
+              <div key={item.os} className="flex justify-between items-center p-1.5 rounded glass-card bg-black/20">
+                <span className="text-slate-300 truncate">{item.os}</span>
+                <span className="text-purple-400 font-mono font-bold">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
 
-      {/* Alert Diagnostics Modal */}
+      {/* ------------------------------------------------------------- */}
+      {/* 5. GEOLOCATION MAP & THREAT HEATMAP */}
+      {/* ------------------------------------------------------------- */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Widget 14: Country Login Leaflet Map (8 Cols) */}
+        <div className="lg:col-span-8 glass-panel p-5 border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span>Interactive Country Authentication & Threat Map</span>
+              </h3>
+              <p className="text-[11px] text-slate-400">Leaflet geographic coordinates telemetry</p>
+            </div>
+          </div>
+          <LocationMap loginAttempts={loginAttempts} />
+        </div>
+
+        {/* Widget 13 & 15: Threat Heatmap & Employee Activity Feed (4 Cols) */}
+        <div className="lg:col-span-4 glass-panel p-5 border-white/10 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-1">
+              <Flame className="w-4 h-4 text-amber-400" />
+              <span>Threat Heatmap Density Matrix</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-3">Threat concentration intensity</p>
+            
+            <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] font-bold font-mono">
+              <div className="p-2.5 rounded bg-red-600/30 text-red-200 border border-red-500/40">
+                <span>CRITICAL</span>
+                <span className="block text-sm mt-0.5">{criticalAlertsCount}</span>
+              </div>
+              <div className="p-2.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                <span>HIGH</span>
+                <span className="block text-sm mt-0.5">{highAlertsCount}</span>
+              </div>
+              <div className="p-2.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span>MED</span>
+                <span className="block text-sm mt-0.5">{mediumAlertsCount}</span>
+              </div>
+              <div className="p-2.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <span>LOW</span>
+                <span className="block text-sm mt-0.5">{lowAlertsCount}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Widget 15: Employee Activity Timeline */}
+          <div className="mt-4 pt-3 border-t border-white/10">
+            <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-indigo-400" /> Employee Activity Feed
+            </h4>
+            <div className="space-y-2 max-h-36 overflow-y-auto text-[10px]">
+              {loginAttempts.slice(0, 5).map((att) => (
+                <div key={att.id} className="p-1.5 rounded glass-card bg-black/20 flex justify-between items-center">
+                  <div className="truncate pr-2">
+                    <span className="text-white font-bold block">{att.name || att.email}</span>
+                    <span className="text-slate-400">{att.city}, {att.country}</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${
+                    att.status === "success" ? "text-emerald-400" : "text-red-400"
+                  }`}>
+                    {att.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Alert Detail Modal */}
       {selectedAlert && (
         <AlertDetailModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
       )}

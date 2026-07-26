@@ -13,20 +13,33 @@ const customMarkerIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-export function LocationMap({ loginAttempts }) {
+export function LocationMap({ loginAttempts = [] }) {
   // Extract unique valid locations with coordinates
   const locationMap = new Map();
 
   loginAttempts.forEach((attempt) => {
+    if (!attempt) return;
     const loc = attempt.location;
-    if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
-      const key = `${loc.city || "Unknown"}_${loc.country || "Unknown"}`;
+    let lat = attempt.latitude;
+    let lng = attempt.longitude;
+    let city = attempt.city || "Unknown City";
+    let country = attempt.country || "Unknown Country";
+
+    if (loc && typeof loc === "object") {
+      if (typeof loc.lat === "number") lat = loc.lat;
+      if (typeof loc.lng === "number") lng = loc.lng;
+      if (loc.city) city = loc.city;
+      if (loc.country) country = loc.country;
+    }
+
+    if (typeof lat === "number" && typeof lng === "number" && !isNaN(lat) && !isNaN(lng)) {
+      const key = `${city}_${country}`;
       if (!locationMap.has(key)) {
         locationMap.set(key, {
-          city: loc.city || "Unknown City",
-          country: loc.country || "Unknown Country",
-          lat: loc.lat,
-          lng: loc.lng,
+          city,
+          country,
+          lat,
+          lng,
           attemptsCount: 1,
           lastAttempt: attempt
         });
@@ -66,9 +79,11 @@ export function LocationMap({ loginAttempts }) {
                 <div className="text-slate-300">
                   Authentication Events: <span className="font-semibold text-indigo-400">{loc.attemptsCount}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">
-                  Last: {loc.lastAttempt.email} ({loc.lastAttempt.status})
-                </div>
+                {loc.lastAttempt && (
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    Last: {loc.lastAttempt.email} ({loc.lastAttempt.status})
+                  </div>
+                )}
               </div>
             </Popup>
           </Marker>
