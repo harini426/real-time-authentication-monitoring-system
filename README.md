@@ -1,7 +1,5 @@
 
 
-
-
 # 🛡️ Real-Time Authentication Monitoring & Threat Detection System
 
 A 100% free-tier compatible Security Operations Center (SOC) dashboard and real-time threat detection system built with **React (Vite)**, **Tailwind CSS (Glassmorphism)**, **Recharts**, **Firebase (Auth, Firestore, Hosting)**, and **Leaflet Geolocation Mapping**.
@@ -277,6 +275,8 @@ The Super Admin dashboard provides centralized visibility and control over the e
 ## 🏢 Enterprise Employee Distribution
 
 The system simulates an enterprise environment with **50 employees** distributed across multiple departments and security roles.
+
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20160207.png?raw=true)
 
 Example organizational distribution:
 
