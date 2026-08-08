@@ -95,3 +95,5 @@ MIT License
 ## super admin dashboard:
 
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095126.png?raw=true)
+![image alt](https://raw.githubusercontent.com/harini426/real-time-authentication-monitoring-system/7a2b62eb46557f2bf95b5abb7651f5a2d27c0e4d/Screenshot%202026-08-08%20095143.png)
+![image alt]( )
