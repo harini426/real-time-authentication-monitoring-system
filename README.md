@@ -86,6 +86,9 @@ const firebaseConfig = {
 
 ## 📄 License
 MIT License
+
 ##OUTPUT
+
 login page:
+
 Screenshot 2026-08-08 095039.png
