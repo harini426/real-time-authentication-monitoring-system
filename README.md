@@ -237,6 +237,7 @@ Security Administrators can:
 - Monitor security configuration
 
 Security Administrators are responsible for maintaining secure access and enforcing organizational security policies.
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20163531.png?raw=true)
 
 ---
 
