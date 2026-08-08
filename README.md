@@ -214,6 +214,7 @@ Incident Responders can:
 The Incident Responder focuses on containment, investigation, remediation, and recovery.
 
 ---
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20161605.png?raw=true)
 
 ### ⚙️ 5. Security Administrator Dashboard
 
