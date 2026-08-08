@@ -192,6 +192,7 @@ SOC Analyst L2 can:
 - Escalate confirmed incidents to Incident Response
 
 L2 analysts have broader investigation permissions than L1 analysts.
+![image alt](https://raw.githubusercontent.com/harini426/real-time-authentication-monitoring-system/3ee2fff60f21db0f833fc8f6982593e09f4ae6da/Screenshot%202026-08-08%20163434.png)
 
 ---
 
