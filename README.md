@@ -292,39 +292,12 @@ Example organizational distribution:
 
 ---
 
-## 📊 Role-Based Dashboard Behavior
 
-Each user receives a different dashboard based on their assigned role.
-
-For example:
-
-**Employee Login**
-→ Employee Dashboard  
-→ Personal profile & authentication history
-
-**SOC Analyst L1 Login**
-→ SOC Monitoring Dashboard  
-→ Alerts, authentication events & initial investigation
-
-**SOC Analyst L2 Login**
-→ Advanced Investigation Dashboard  
-→ Threat analysis & incident investigation
-
-**Incident Responder Login**
-→ Incident Response Dashboard  
-→ Containment & remediation
-
-**Security Administrator Login**
-→ Security Administration Dashboard  
-→ Account, role & policy management
-
-**Super Admin Login**
-→ Enterprise Administration Dashboard  
-→ Complete system visibility & control
-
-This role-based architecture ensures that users only access the features and information required for their responsibilities.
-
----
+- Browser
+- Operating System
+- Device Type
+- Last Login
+- Last Logout
 
 ## 🔍 Employee Profile & Security History
 
@@ -341,11 +314,6 @@ The profile can include:
 - Security Status
 - IP Address
 - Location
-- Browser
-- Operating System
-- Device Type
-- Last Login
-- Last Logout
 - Login Attempts
 - Failed Login Attempts
 - Active Sessions
