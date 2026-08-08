@@ -1,3 +1,7 @@
+
+
+
+
 # 🛡️ Real-Time Authentication Monitoring & Threat Detection System
 
 A 100% free-tier compatible Security Operations Center (SOC) dashboard and real-time threat detection system built with **React (Vite)**, **Tailwind CSS (Glassmorphism)**, **Recharts**, **Firebase (Auth, Firestore, Hosting)**, and **Leaflet Geolocation Mapping**.
@@ -99,6 +103,8 @@ MIT License
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095205.png?raw=true)
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20122909.png?raw=true)
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095346.png?raw=true)
+
+
 
 ## total employees their roles:
 
