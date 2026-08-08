@@ -119,6 +119,8 @@ The Employee Management dashboard provides a complete overview of all 50 employe
 Administrators can search and filter employees by name, employee ID, email, department, role, and account status.
 
 ---
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20160257.png?raw=true)
+
 
 ## 🔐 Role-Based Dashboards
 
@@ -278,7 +280,6 @@ The Super Admin dashboard provides centralized visibility and control over the e
 The system simulates an enterprise environment with **50 employees** distributed across multiple departments and security roles.
 
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20160207.png?raw=true)
-![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20160257.png?raw=true)
 
 Example organizational distribution:
 
