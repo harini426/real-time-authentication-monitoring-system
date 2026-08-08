@@ -171,6 +171,7 @@ SOC Analyst L1 can:
 - Escalate suspicious incidents to L2
 
 The L1 analyst primarily handles initial detection, monitoring, validation, and escalation.
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20163357.png?raw=true)
 
 ---
 
