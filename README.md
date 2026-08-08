@@ -91,11 +91,180 @@ const firebaseConfig = {
 ## 📄 License
 MIT License
 
-## OUTPUT
+## 👥 Enterprise Employee & Role Management
+
+The system provides a centralized enterprise employee management module where authorized administrators can monitor and manage employee accounts, assigned roles, departments, devices, authentication activity, and security status in real time.
+
+The platform supports **50 enterprise employees** distributed across different organizational roles and departments. Each role has a dedicated dashboard with role-specific permissions, features, and monitoring capabilities.
+
+### 🏢 Employee Management
+
+The Employee Management dashboard provides a complete overview of all 50 employees, including:
+
+- Employee Name
+- Employee ID
+- Email Address
+- Department
+- Assigned Role
+- Account Status
+- Security Status
+- Device Information
+- Browser & Operating System
+- IP Address
+- Last Login
+- Last Logout
+- Login History
+- Authentication Activity
+- Assigned Devices
+- Profile & Security History
+
+Administrators can search and filter employees by name, employee ID, email, department, role, and account status.
+
+---
+
+## 🔐 Role-Based Dashboards
+
+The platform implements **Role-Based Access Control (RBAC)**. When a user logs in, the system identifies their assigned role and automatically provides the appropriate dashboard and permissions.
+
+Different roles see different dashboards, features, and security controls.
+
 ## authentication page:
 
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095039.png?raw=true)
 
+
+### 👤 1. Employee Dashboard
+
+The Employee dashboard is designed for normal enterprise users.
+
+Employees can:
+
+- View their personal profile
+- View assigned department and role
+- View login and logout history
+- View active sessions
+- View registered devices
+- View recent authentication activity
+- View account security status
+- Update permitted profile information
+- Logout from active sessions
+
+Employees cannot access administrative controls or other employees' sensitive information.
+
+---
+
+### 🛡️ 2. SOC Analyst L1 Dashboard
+
+The SOC Analyst L1 dashboard focuses on first-level security monitoring and alert triage.
+
+SOC Analyst L1 can:
+
+- Monitor real-time authentication events
+- View failed and successful login attempts
+- Monitor active employee sessions
+- Identify suspicious login activity
+- Review security alerts
+- Investigate brute-force attempts
+- Detect unusual authentication patterns
+- Perform initial alert triage
+- Monitor IP addresses and locations
+- Escalate suspicious incidents to L2
+
+The L1 analyst primarily handles initial detection, monitoring, validation, and escalation.
+
+---
+
+### 🔎 3. SOC Analyst L2 Dashboard
+
+The SOC Analyst L2 dashboard provides advanced investigation capabilities.
+
+SOC Analyst L2 can:
+
+- Investigate escalated security alerts
+- Analyze authentication history
+- Investigate suspicious IP addresses
+- Review device and browser changes
+- Analyze impossible-travel events
+- Investigate repeated failed logins
+- Correlate multiple authentication events
+- Perform deeper threat analysis
+- Validate incident severity
+- Escalate confirmed incidents to Incident Response
+
+L2 analysts have broader investigation permissions than L1 analysts.
+
+---
+
+### 🚨 4. Incident Responder Dashboard
+
+The Incident Responder dashboard focuses on handling confirmed security incidents.
+
+Incident Responders can:
+
+- View confirmed security incidents
+- Investigate affected employee accounts
+- Review complete authentication history
+- Analyze suspicious sessions
+- Identify affected devices
+- Contain compromised accounts
+- Terminate suspicious sessions
+- Coordinate incident response activities
+- Track incident status
+- Document investigation actions
+- Close incidents after resolution
+
+The Incident Responder focuses on containment, investigation, remediation, and recovery.
+
+---
+
+### ⚙️ 5. Security Administrator Dashboard
+
+The Security Administrator dashboard provides security and access management capabilities.
+
+Security Administrators can:
+
+- Manage employee accounts
+- Assign and modify roles
+- Enable or disable employee accounts
+- Lock suspicious accounts
+- Unlock accounts after verification
+- Manage assigned devices
+- Review security policies
+- Monitor authentication controls
+- Review employee security history
+- Manage access permissions
+- Monitor security configuration
+
+Security Administrators are responsible for maintaining secure access and enforcing organizational security policies.
+
+---
+
+### 👑 6. Super Admin Dashboard
+
+The Super Admin has the highest level of administrative access.
+
+The Super Admin can:
+
+- View the complete enterprise dashboard
+- Monitor all 50 employees
+- View all departments and roles
+- Create employee accounts
+- Assign roles and departments
+- Modify employee information
+- Enable or disable accounts
+- Lock and unlock accounts
+- Manage administrative access
+- Monitor all authentication activities
+- View security alerts and threats
+- Configure security policies
+- Monitor system-wide security status
+- Review audit logs
+- Manage role permissions
+- Monitor SOC operations
+
+The Super Admin dashboard provides centralized visibility and control over the entire authentication monitoring and threat detection platform.
+
+---
 ## super admin dashboard:
 
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095126.png?raw=true)
@@ -103,6 +272,120 @@ MIT License
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095205.png?raw=true)
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20122909.png?raw=true)
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095346.png?raw=true)
+
+
+## 🏢 Enterprise Employee Distribution
+
+The system simulates an enterprise environment with **50 employees** distributed across multiple departments and security roles.
+
+Example organizational distribution:
+
+| Role | Employees | Primary Responsibility |
+|------|-----------|------------------------|
+| Employee | 35 | Normal business operations |
+| SOC Analyst L1 | 5 | Security monitoring & alert triage |
+| SOC Analyst L2 | 3 | Advanced security investigation |
+| Incident Responder | 2 | Incident containment & response |
+| Security Administrator | 3 | Security & access management |
+| Super Admin | 2 | Enterprise-wide administration |
+| **Total** | **50** | **Complete Enterprise Environment** |
+
+---
+
+## 📊 Role-Based Dashboard Behavior
+
+Each user receives a different dashboard based on their assigned role.
+
+For example:
+
+**Employee Login**
+→ Employee Dashboard  
+→ Personal profile & authentication history
+
+**SOC Analyst L1 Login**
+→ SOC Monitoring Dashboard  
+→ Alerts, authentication events & initial investigation
+
+**SOC Analyst L2 Login**
+→ Advanced Investigation Dashboard  
+→ Threat analysis & incident investigation
+
+**Incident Responder Login**
+→ Incident Response Dashboard  
+→ Containment & remediation
+
+**Security Administrator Login**
+→ Security Administration Dashboard  
+→ Account, role & policy management
+
+**Super Admin Login**
+→ Enterprise Administration Dashboard  
+→ Complete system visibility & control
+
+This role-based architecture ensures that users only access the features and information required for their responsibilities.
+
+---
+
+## 🔍 Employee Profile & Security History
+
+Each employee has a dedicated profile containing authentication and security information.
+
+The profile can include:
+
+- Employee ID
+- Full Name
+- Corporate Email
+- Department
+- Job Role
+- Account Status
+- Security Status
+- IP Address
+- Location
+- Browser
+- Operating System
+- Device Type
+- Last Login
+- Last Logout
+- Login Attempts
+- Failed Login Attempts
+- Active Sessions
+- Registered Devices
+- Security Alerts
+- Authentication History
+- Administrative Actions
+
+Authorized administrators can inspect an employee's profile and security history to understand account activity and investigate suspicious behavior.
+
+---
+
+## 🛡️ Access Control & Security
+
+The system follows the principle of **least privilege**, ensuring that every role receives only the permissions required for its responsibilities.
+
+Role-based restrictions prevent normal employees from accessing administrative functions, while security teams receive appropriate monitoring and investigation capabilities.
+
+All important administrative and security actions can be tracked through the system's audit and activity monitoring mechanisms.
+
+---
+
+## 🎯 Enterprise Monitoring Objective
+
+The objective of the role-based architecture is to simulate how an enterprise Security Operations Center monitors employee authentication activities, investigates suspicious behavior, manages security incidents, and controls access across the organization.
+
+The system combines:
+
+- Real-time authentication monitoring
+- Role-Based Access Control
+- Employee management
+- Security alert monitoring
+- Threat detection
+- Authentication history
+- Device monitoring
+- IP and location analysis
+- Incident investigation
+- Account security management
+- Enterprise-wide administrative control
+- 
 
 
 
