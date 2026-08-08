@@ -88,8 +88,10 @@ const firebaseConfig = {
 MIT License
 
 ## OUTPUT
-authentication page:
+## authentication page:
 
 ![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095039.png?raw=true)
 
+## super admin dashboard:
 
+![image alt](https://github.com/harini426/real-time-authentication-monitoring-system/blob/main/Screenshot%202026-08-08%20095126.png?raw=true)
